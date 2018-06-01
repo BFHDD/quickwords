@@ -39,11 +39,7 @@ const snippetsManager = new SnippetsManager({ store, keyboardHandler, keyboardSi
 describe('SnippetsManager', () => {
     describe('_evaluate', () => {
         it('handles a simple js script', async () => {
-            const code = `
-                (function () {
-                    return 'test'
-                })
-            `
+            const code = "function qw (a)\n\t qprint('hello ' .. a)\nend  "
 
             const result = await snippetsManager._evaluate('abcd', code)
 

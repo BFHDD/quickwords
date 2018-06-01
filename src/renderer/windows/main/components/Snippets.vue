@@ -34,6 +34,7 @@
                     <span class="flex-1">{{ snippet.key }}</span>
                     <span class="px-3 ml-2 text-grey-darkest py-1 text-xs bg-grey rounded-full" v-if="snippet.regex">regex</span>
                     <span class="px-3 ml-2 text-grey-darkest py-1 text-xs bg-grey rounded-full" v-if="snippet.type === 'js'">js</span>
+                    <span class="px-3 ml-2 text-grey-darkest py-1 text-xs bg-grey rounded-full" v-if="snippet.type === 'lua'">lua</span>
                     <span class="flex items-center ml-2" :class="['', 'text-grey-darkest'][theme]" @click.stop="remove(snippet)">
                         <icon-remove class="h-6 w-6 fill-current"></icon-remove>
                     </span>
@@ -89,7 +90,7 @@
                             class="rounded flex-1"
                             @edit="(value) => editing.value = value"
                             :theme="theme === 0 ? 'qw_dark' : 'chrome'"
-                            :mode="editing.type === 'js' ? 'javascript' : 'text'"
+                            :mode="editing.type === 'lua' ? 'lua' : 'text'"
                             ref="editor"
                             v-else
                         ></editor>
@@ -152,6 +153,7 @@
                         >
                             <option value="plain">Plain Text</option>
                             <option value="js">JavaScript</option>
+                            <option value="lua">Lua</option>
                         </select>
                         <icon-arrow-down class="block absolute center-y r-4 w-8 h-8 fill-current text-grey-dark"></icon-arrow-down>
                     </div>
@@ -306,4 +308,3 @@
         },
     }
 </script>
-

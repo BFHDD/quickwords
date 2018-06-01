@@ -1,5 +1,6 @@
 const chars = require('./chars')
 const keymap = require('native-keymap').getKeyMap()
+const nodelua = require('node-lua');
 const _ = require('lodash')
 
 const KEY_BACKSPACE = 'Backspace'
@@ -108,6 +109,48 @@ class SnippetsManager {
         console.log(this.buffer)
     }
 
+    _evaluateLua(matchedString, code) {
+        return new Promise((resolve, reject) => {
+            'use strict'
+
+            const timeout = setTimeout(() => reject('Function timed out after 5 seconds of inactivity'), this.timeout)
+
+            let executable
+            let e = ''
+            var lua = new nodelua.LuaState();
+            lua.RegisterFunction('qprint', function() {
+            	var a = lua.ToValue(1);
+            	lua.Pop(1);
+              e = e + a;
+            	return 0;
+            });
+
+            try {
+              lua.DoString(code);
+            } catch (err) {
+                reject(String(err))
+            }
+
+            const r = (data) => {
+                clearTimeout(timeout)
+
+                resolve(data)
+            }
+
+
+            try {
+              lua.GetGlobal("qw");
+              lua.Push(matchedString);
+              lua.Call(1, 0);
+              lua.Pop(1)
+            } catch (err) {
+                reject(err)
+            }
+
+            r(e)
+        })
+    }
+
     _evaluate(matchedString, code) {
         return new Promise((resolve, reject) => {
             'use strict'
@@ -173,8 +216,10 @@ class SnippetsManager {
 
                 if (snippet.type === 'js') {
                     this._handleJavascriptSnippet(matchedString, snippet.value)
+                } else if(snippet.type === 'lua'){
+                    this._handleLuaSnippet(matchedString, snippet.value)
                 } else {
-                    this._handlePlainTextSnippet(snippet.value)
+                  this._handlePlainTextSnippet(snippet.value)
                 }
 
                 break
@@ -182,11 +227,26 @@ class SnippetsManager {
         }
     }
 
-    async _handleJavascriptSnippet(matchedString, code) {
+    async _handleLuaSnippet(matchedString, code) {
         const clipboardContent = this.clipboard.readText()
 
         try {
             const data = await this._evaluate(matchedString, code)
+
+            this.clipboard.writeText(data)
+        } catch (error) {
+            this.clipboard.writeText(`QWError: ${_.get('error', 'message', String(error))}`)
+        } finally {
+            setTimeout(() => this.keyboardSimulator.keyTap('v', 'command'), 50)
+            setTimeout(() => this.clipboard.writeText(clipboardContent), 500)
+        }
+    }
+
+    async _handleJavascriptSnippet(matchedString, code) {
+        const clipboardContent = this.clipboard.readText()
+
+        try {
+            const data = await this._evaluateLua(matchedString, code)
 
             this.clipboard.writeText(data)
         } catch (error) {
