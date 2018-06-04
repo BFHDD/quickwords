@@ -90,7 +90,7 @@
                             class="rounded flex-1"
                             @edit="(value) => editing.value = value"
                             :theme="theme === 0 ? 'qw_dark' : 'chrome'"
-                            :mode="editing.type === 'lua' ? 'lua' : 'text'"
+                            :mode="(editing.type === 'lua') ? 'lua' : ((editing.type === 'js') ? 'javascript' : 'text')"
                             ref="editor"
                             v-else
                         ></editor>
@@ -250,7 +250,7 @@
             edit(snippet) {
                 this.editing = snippet
 
-                if (this.editing.type === 'js') {
+                if (this.editing.type === 'js' || this.editing.type === 'lua') {
                     Vue.nextTick(() => this.$refs.editor.setValue(this.editing.value))
                 }
             },
@@ -292,6 +292,8 @@
             changedType() {
                 if (this.editing.type === 'js' && !this.editing.value) {
                     this.editing.value = '/**\n * @param {string} trigger A string that was matched\n * @return {string} Replacement\n */\nfunction qw(trigger) {\n  return trigger.toUpperCase()\n}\n'
+                } else if (this.editing.type === 'lua' && !this.editing.value) {
+                    this.editing.value = 'function qw(trigger)\n  qprint(string.upper(trigger))\nend\n'
                 }
                 Vue.nextTick(() => this.$refs.editor.setValue(this.editing.value))
             },
