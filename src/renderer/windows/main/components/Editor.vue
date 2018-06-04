@@ -9,6 +9,7 @@
     import 'brace/ext/statusbar'
     import 'brace/ext/language_tools'
     import 'brace/mode/javascript'
+    import 'brace/mode/lua'
     import 'brace/theme/chrome'
 
     ace.define('ace/theme/qw_dark', ['require', 'exports', 'module', 'ace/lib/dom'], function (acequire, exports) {
@@ -44,23 +45,25 @@
             this.editor.getSession().setTabSize(2)
             this.editor.setShowPrintMargin(false)
 
-            this.editor.session.$worker.send('setOptions', [
-                {
-                    esversion: 7,
-                    globals: {
-                        exec: true,
-                        fetch: true,
-                        require: true,
-                        setTimeout: true,
-                        setInterval: true,
-                        clearTimeout: true,
-                        clearInterval: true,
+            if (this.mode === 'javascript') {
+                this.editor.session.$worker.send('setOptions', [
+                    {
+                        esversion: 7,
+                        globals: {
+                            exec: true,
+                            fetch: true,
+                            require: true,
+                            setTimeout: true,
+                            setInterval: true,
+                            clearTimeout: true,
+                            clearInterval: true,
+                        },
+                        strict: 'implied',
+                        undef: true,
+                        asi: true,
                     },
-                    strict: 'implied',
-                    undef: true,
-                    asi: true,
-                },
-            ])
+                ])
+            }
 
             this.editor.getSession().on('change', () => {
                 this.$emit('edit', this.editor.getSession().getValue())
