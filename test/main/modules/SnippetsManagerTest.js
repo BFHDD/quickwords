@@ -37,11 +37,15 @@ const SnippetsManager = require('../../../out/main/modules/SnippetsManager')
 const snippetsManager = new SnippetsManager({ store, keyboardHandler, keyboardSimulator, clipboard })
 
 describe('SnippetsManager', () => {
-    describe('_evaluate', () => {
+    describe('_evaluateJavascript', () => {
         it('handles a simple js script', async () => {
-            const code = "function qw (a)\n\t qprint('hello ' .. a)\nend  "
+            const code = `
+                (function () {
+                    return 'test'
+                })
+            `
 
-            const result = await snippetsManager._evaluate('abcd', code)
+            const result = await snippetsManager._evaluateJavascript('abcd', code)
 
             assert.equal('test', result)
         })
@@ -53,7 +57,7 @@ describe('SnippetsManager', () => {
                 })
             `
 
-            const result = await snippetsManager._evaluate('abcd', code)
+            const result = await snippetsManager._evaluateJavascript('abcd', code)
 
             assert.equal('ABCD', result)
         })
@@ -65,7 +69,7 @@ describe('SnippetsManager', () => {
                 })
             `
 
-            const result = await snippetsManager._evaluate('abcd', code)
+            const result = await snippetsManager._evaluateJavascript('abcd', code)
 
             assert.equal(10, result)
         })
@@ -79,7 +83,7 @@ describe('SnippetsManager', () => {
                 })
             `
 
-            const result = await snippetsManager._evaluate('abcd', code)
+            const result = await snippetsManager._evaluateJavascript('abcd', code)
 
             assert.equal('value', result)
         })
@@ -96,13 +100,13 @@ describe('SnippetsManager', () => {
             `
 
             try {
-                await snippetsManager._evaluate('abcd', code)
+                await snippetsManager._evaluateJavascript('abcd', code)
             } catch (err) {
                 assert.equal('Function timed out after 5 seconds of inactivity', err)
                 return
             }
 
-            throw new Error('_evaluate did not time out')
+            throw new Error('_evaluateJavascript did not time out')
         })
 
         it('errors a script with syntax error', function () {
@@ -112,7 +116,7 @@ describe('SnippetsManager', () => {
                 })
             `
 
-            return snippetsManager._evaluate('abcd', code)
+            return snippetsManager._evaluateJavascript('abcd', code)
                 .then(() => {
                     throw new Error('Exception was expected to be thrown because of syntax error')
                 })
@@ -128,7 +132,7 @@ describe('SnippetsManager', () => {
                 })
             `
 
-            return snippetsManager._evaluate('abcd', code)
+            return snippetsManager._evaluateJavascript('abcd', code)
                 .then(() => {
                     throw new Error('Exception was expected to be thrown because of a call to undefined function')
                 })
@@ -148,7 +152,7 @@ describe('SnippetsManager', () => {
                 }
             `
 
-            return snippetsManager._evaluate('abcd', code)
+            return snippetsManager._evaluateJavascript('abcd', code)
                 .then(() => {
                     throw new Error('Exception was expected to be thrown because of invalid syntax')
                 })
@@ -162,13 +166,23 @@ describe('SnippetsManager', () => {
                 ''.trim()
             `
 
-            return snippetsManager._evaluate('abcd', code)
+            return snippetsManager._evaluateJavascript('abcd', code)
                 .then(() => {
                     throw new Error('Exception was expected to be thrown because provided code is not callable')
                 })
                 .catch((err) => {
                     assert.equal('Used snippet code is not a function', err)
                 })
+        })
+    })
+
+    describe('_evaluateLua', () => {
+        it.only('handles a simple Lua script', async () => {
+            const code = 'function qw (a)\n\t qprint(\'hello \' .. a)\nend'
+
+            const result = await snippetsManager._evaluateLua('abcd', code)
+
+            assert.equal('hello abcd', result)
         })
     })
 })

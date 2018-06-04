@@ -90,7 +90,7 @@
                             class="rounded flex-1"
                             @edit="(value) => editing.value = value"
                             :theme="theme === 0 ? 'qw_dark' : 'chrome'"
-                            :mode="editing.type === 'lua' ? 'lua' : 'text'"
+                            :mode="(editing.type === 'lua') ? 'lua' : ((editing.type === 'js') ? 'javascript' : 'text')"
                             ref="editor"
                             v-else
                         ></editor>
