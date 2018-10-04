@@ -1,7 +1,12 @@
 const chars = require('./chars')
-const keymap = require('native-keymap').getKeyMap()
+
 const nodeLua = require('node-lua')
+
+const NativeKeymap = require('native-keymap')
+
 const _ = require('lodash')
+const Notification = require('./Notification')
+const fixPath = require('fix-path')
 
 const KEY_BACKSPACE = 'Backspace'
 const KEY_ARROWS = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']
@@ -24,6 +29,8 @@ class SnippetsManager {
         this.keyboardHandler.on('mouseclick', e => this._onMouseClick(e))
 
         this.keyboardHandler.start()
+
+        fixPath()
     }
 
     destructor() {
@@ -41,6 +48,7 @@ class SnippetsManager {
 
     _eventToUnicode({ keycode, shiftKey, altKey, ctrlKey, metaKey }) {
         const name = this._getCharNameFromKeycode(keycode)
+        const keymap = NativeKeymap.getKeyMap()
 
         if (!name || !(name in keymap)) {
             return false
@@ -198,13 +206,13 @@ class SnippetsManager {
         })
     }
 
-    _replaceSnippetIfMatchFound() {
+    async _replaceSnippetIfMatchFound() {
         for (const snippet of this.store.get('snippets')) {
             let key = snippet.key
 
             if (!snippet.regex) {
                 // escape all regex-special characters
-                key = key.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')
+                key = _.escapeRegExp(key)
             }
 
             const match = new RegExp(`.*(${key})$`).exec(this.buffer)
@@ -216,11 +224,11 @@ class SnippetsManager {
                 }
 
                 if (snippet.type === 'js') {
-                    this._handleJavascriptSnippet(matchedString, snippet.value)
+                    this.replace(await this._handleJavascriptSnippet(matchedString, snippet.value))
                 } else if (snippet.type === 'lua') {
-                    this._handleLuaSnippet(matchedString, snippet.value)
+                    this.replace(await this._handleLuaSnippet(matchedString, snippet.value))
                 } else {
-                    this._handlePlainTextSnippet(snippet.value)
+                    this.replace(this._handlePlainTextSnippet(snippet.value))
                 }
 
                 break
@@ -228,19 +236,14 @@ class SnippetsManager {
         }
     }
 
-    async _handleJavascriptSnippet(matchedString, code) {
+    replace(value) {
         const clipboardContent = this.clipboard.readText()
 
-        try {
-            const data = await this._evaluateJavascript(matchedString, code)
 
-            this.clipboard.writeText(data)
-        } catch (error) {
-            this.clipboard.writeText(`QWError: ${_.get('error', 'message', String(error))}`)
-        } finally {
-            setTimeout(() => this.keyboardSimulator.keyTap('v', 'command'), 50)
-            setTimeout(() => this.clipboard.writeText(clipboardContent), 500)
-        }
+        this.clipboard.writeText(value)
+
+        setTimeout(() => this.keyboardSimulator.keyTap('v', 'command'), 50)
+        setTimeout(() => this.clipboard.writeText(clipboardContent), 500)
     }
 
     async _handleLuaSnippet(matchedString, code) {
@@ -258,13 +261,22 @@ class SnippetsManager {
         }
     }
 
+    async _handleJavascriptSnippet(matchedString, code) {
+        try {
+            return await this._evaluate(matchedString, code)
+        } catch (error) {
+            if (!Notification.isSupported()) {
+                return `QWError ${_.get('error', 'message', String(error))}`
+            }
+
+            Notification.show('QWError', _.get('error', 'message', String(error)))
+
+            return ''
+        }
+    }
+
     _handlePlainTextSnippet(value) {
-        const clipboardContent = this.clipboard.readText()
-
-        this.clipboard.writeText(value)
-
-        setTimeout(() => this.keyboardSimulator.keyTap('v', 'command'), 50)
-        setTimeout(() => this.clipboard.writeText(clipboardContent), 500)
+        return value
     }
 
     _addCharToBuffer(character) {
